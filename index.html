@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>سفر کربن - علوم نهم</title>
+<style>
+  :root{--gold:#fbbf24;--purple:#8b5cf6;--blue:#3b82f6;--green:#10b981;--red:#ef4444;--dark:#0f172a;}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
+  html,body{width:100%;height:100dvh;overflow:hidden;font-family:Tahoma,sans-serif;background:var(--dark);color:#fff;touch-action:manipulation;overscroll-behavior:none;}
+  #app{position:fixed;inset:0;}
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .45s;overflow-y:auto;overflow-x:hidden;}
+  .screen.active{opacity:1;pointer-events:auto;}
+
+  .btn{padding:14px 26px;font-size:clamp(14px,3.6vw,17px);font-family:inherit;font-weight:bold;
+    background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;border:none;border-radius:16px;
+    cursor:pointer;box-shadow:0 8px 20px rgba(59,130,246,.4);transition:transform .15s,box-shadow .15s;
+    min-height:52px;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+  .btn:active{transform:scale(.96);}
+  .btn.gold{background:linear-gradient(135deg,#fbbf24,#d97706);color:#1e293b;box-shadow:0 8px 20px rgba(251,191,36,.4);}
+  .btn.green{background:linear-gradient(135deg,#10b981,#059669);box-shadow:0 8px 20px rgba(16,185,129,.4);}
+  .btn.red{background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 8px 20px rgba(239,68,68,.4);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+
+  #scr-intro{justify-content:center;align-items:center;padding:20px;text-align:center;
+    background:radial-gradient(circle at 50% 30%,#1e1b4b 0%,#0f172a 60%,#000 100%);}
+  .intro-atom{position:relative;width:160px;height:160px;margin-bottom:28px;}
+  .intro-nucleus{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:60px;height:60px;background:radial-gradient(circle,#475569,#1e293b);
+    border:2px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:28px;font-weight:bold;color:var(--gold);box-shadow:0 0 30px rgba(251,191,36,.6);}
+  .orbit{position:absolute;top:50%;left:50%;border:1.5px dashed rgba(139,92,246,.4);border-radius:50%;
+    transform:translate(-50%,-50%);animation:spin linear infinite;}
+  .orbit.o1{width:100px;height:100px;animation-duration:4s;}
+  .orbit.o2{width:140px;height:140px;animation-duration:6s;animation-direction:reverse;}
+  .orbit.o3{width:160px;height:160px;animation-duration:8s;}
+  .orbit .electron{position:absolute;width:14px;height:14px;
+    background:radial-gradient(circle,#fef08a,#eab308);border-radius:50%;
+    box-shadow:0 0 12px var(--gold);top:-7px;left:50%;margin-left:-7px;}
+  @keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg);}}
+  .intro-title{font-size:clamp(24px,6.5vw,36px);font-weight:bold;color:var(--gold);
+    margin-bottom:14px;text-shadow:0 3px 20px rgba(251,191,36,.5);}
+  .intro-sub{font-size:clamp(13px,3.5vw,16px);color:#94a3b8;line-height:1.9;margin-bottom:28px;max-width:400px;}
+
+  .topbar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;
+    padding-top:max(10px,env(safe-area-inset-top));background:rgba(0,0,0,.5);
+    font-size:clamp(12px,3vw,14px);font-weight:bold;z-index:10;flex-shrink:0;
+    border-bottom:1px solid rgba(139,92,246,.25);}
+  .progress-badge{background:linear-gradient(135deg,rgba(139,92,246,.4),rgba(59,130,246,.4));
+    padding:5px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.15);}
+
+  /* ===== Cycle Stage ===== */
+  #scr-cycle{background:#000;}
+  .scene-wrapper{flex:1;position:relative;overflow:hidden;}
+  .scene-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+  .hotspot{position:absolute;background:rgba(255,255,255,.95);color:#1e293b;
+    padding:8px 14px;border-radius:14px;font-weight:bold;font-size:clamp(11px,2.8vw,13px);
+    cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.4);border:2px solid rgba(255,255,255,.4);
+    transform:translate(-50%,-50%);transition:all .25s;white-space:nowrap;z-index:5;
+    display:flex;align-items:center;gap:5px;}
+  .hotspot.locked{opacity:.35;pointer-events:none;}
+  .hotspot.visited{background:rgba(251,191,36,.9);color:#1e293b;border-color:#fbbf24;}
+  .hotspot.next{animation:pulseHot 1.5s infinite;border-color:var(--gold);}
+  @keyframes pulseHot{0%,100%{box-shadow:0 6px 20px rgba(0,0,0,.4);}50%{box-shadow:0 0 30px rgba(251,191,36,.9);}}
+  .carbon-atom{position:absolute;width:42px;height:42px;
+    background:radial-gradient(circle,#475569,#0f172a);border:2px solid var(--gold);
+    border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-weight:bold;color:var(--gold);font-size:20px;
+    box-shadow:0 0 20px rgba(251,191,36,.7);transform:translate(-50%,-50%);
+    transition:top 1s cubic-bezier(.4,0,.2,1),left 1s cubic-bezier(.4,0,.2,1);z-index:20;
+    pointer-events:none;}
+  .cycle-info{padding:14px;background:rgba(15,23,42,.95);border-top:2px solid var(--purple);
+    flex-shrink:0;min-height:110px;display:flex;flex-direction:column;gap:8px;
+    padding-bottom:max(14px,env(safe-area-inset-bottom));}
+  .cycle-info-title{color:var(--gold);font-size:clamp(14px,3.6vw,17px);font-weight:bold;}
+  .cycle-info-text{font-size:clamp(12px,3.2vw,15px);color:#cbd5e1;line-height:1.7;}
+
+  /* ===== Modal ===== */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);
+    display:none;align-items:center;justify-content:center;padding:16px;z-index:100;}
+  .modal.open{display:flex;}
+  .modal-card{background:linear-gradient(135deg,#1e293b,#0f172a);border:2px solid rgba(139,92,246,.5);
+    border-radius:22px;padding:20px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.8);
+    max-height:90dvh;overflow-y:auto;}
+  .modal-title{color:var(--gold);font-size:clamp(16px,4.2vw,20px);margin-bottom:14px;text-align:center;line-height:1.5;}
+  .modal-question{font-size:clamp(13px,3.4vw,16px);color:#e2e8f0;line-height:1.9;margin-bottom:16px;text-align:center;}
+  .modal-options{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
+  .option-btn{padding:14px;font-family:inherit;font-size:clamp(12px,3.2vw,15px);
+    background:rgba(59,130,246,.15);color:#fff;border:2px solid rgba(59,130,246,.4);
+    border-radius:14px;cursor:pointer;text-align:center;line-height:1.6;transition:all .2s;min-height:52px;}
+  .option-btn:active{transform:scale(.97);}
+  .option-btn.correct{background:rgba(16,185,129,.3);border-color:var(--green);}
+  .option-btn.wrong{background:rgba(239,68,68,.3);border-color:var(--red);}
+  .modal-explanation{font-size:clamp(12px,3.1vw,14px);color:#cbd5e1;line-height:1.8;
+    padding:12px;background:rgba(139,92,246,.15);border-radius:12px;
+    border-right:3px solid var(--purple);margin-bottom:14px;display:none;}
+  .modal-explanation.show{display:block;}
+
+  /* ===== Hydro Carbon ===== */
+  #scr-hydro{justify-content:center;padding:20px;background:radial-gradient(circle,#312e81,#0f172a);}
+  .hydro-card{background:linear-gradient(135deg,#1e293b,#0f172a);border:2px solid var(--gold);
+    border-radius:22px;padding:22px;max-width:500px;width:100%;margin:0 auto;
+    box-shadow:0 20px 60px rgba(251,191,36,.2);}
+  .hydro-title{color:var(--gold);font-size:clamp(18px,4.5vw,22px);text-align:center;margin-bottom:14px;}
+  .hydro-formula{text-align:center;font-size:clamp(20px,5vw,26px);margin:16px 0;
+    color:#fff;font-weight:bold;letter-spacing:2px;}
+  .hydro-formula .c{color:#64748b;}
+  .hydro-formula .h{color:var(--gold);}
+  .hydro-text{font-size:clamp(13px,3.4vw,16px);color:#cbd5e1;line-height:2;text-align:center;margin-bottom:16px;}
+  .hydro-examples{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:16px 0;}
+  .hydro-ex{background:rgba(59,130,246,.2);border:1px solid rgba(59,130,246,.5);
+    border-radius:10px;padding:8px 4px;text-align:center;font-size:clamp(11px,2.8vw,13px);}
+  .hydro-ex b{display:block;color:var(--gold);font-size:1.1em;margin-bottom:2px;}
+
+  /* ===== Tower ===== */
+  #scr-tower{background:radial-gradient(ellipse at center top,#1a1a3e 0%,#0f172a 70%,#000 100%);}
+  .tower-layout{flex:1;display:flex;flex-direction:row;padding:8px;gap:8px;min-height:0;position:relative;}
+  
+  .tower-col{flex:0 0 46%;display:flex;flex-direction:column;position:relative;
+    border-radius:24px 24px 6px 6px;padding:3px;padding-top:20px;
+    background:linear-gradient(90deg, rgba(0,0,0,.4) 0%, rgba(255,255,255,.08) 50%, rgba(0,0,0,.4) 100%),
+               linear-gradient(180deg, #0ea5e9 0%, #6366f1 20%, #a855f7 35%, #f59e0b 65%, #ef4444 85%, #991b1b 100%);
+    border:2px solid rgba(148,163,184,.4);
+    box-shadow:inset 0 0 40px rgba(0,0,0,.6), 0 10px 40px rgba(0,0,0,.6);overflow:visible;}
+    
+  .tower-col::before{content:'';position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+    width:70%;height:20px;background:linear-gradient(90deg,#334155,#64748b 50%,#334155);
+    border-radius:50% 50% 0 0;border:2px solid rgba(148,163,184,.4);border-bottom:none;
+    box-shadow:inset 0 3px 6px rgba(255,255,255,.15);z-index:2;}
+  .tower-col::after{content:'';position:absolute;top:-40px;left:50%;transform:translateX(-50%);
+    width:14px;height:32px;background:linear-gradient(90deg,#1e293b,#475569 50%,#1e293b);
+    border-radius:3px 3px 0 0;border:1px solid rgba(148,163,184,.4);z-index:1;}
+  
+  .fire-base{position:absolute;bottom:-38px;left:50%;transform:translateX(-50%);
+    display:flex;gap:2px;font-size:20px;filter:drop-shadow(0 0 8px #ef4444);z-index:3;
+    animation:fireFlicker .4s infinite alternate;}
+  @keyframes fireFlicker{
+    0%{transform:translateX(-50%) scale(1);filter:drop-shadow(0 0 6px #ef4444)}
+    100%{transform:translateX(-50%) scale(1.08);filter:drop-shadow(0 0 12px #fbbf24)}
+  }
+  .crude-inlet{position:absolute;bottom:-72px;left:50%;transform:translateX(-50%);
+    background:linear-gradient(180deg,#1c1917,#0c0a09);border:1px solid #78350f;
+    border-radius:8px;padding:2px 8px;font-size:9px;color:#fbbf24;white-space:nowrap;z-index:2;}
+  
+  .tower-level{flex:1;border-bottom:1px solid rgba(255,255,255,.1);position:relative;
+    display:flex;align-items:center;justify-content:space-between;padding:0 6px;
+    transition:background .5s, box-shadow .5s;margin:0 2px;border-radius:4px;}
+  .tower-level:last-child{border-bottom:none;}
+  .tower-level.visited{background:rgba(16,185,129,.15);}
+  .tower-level.active{
+    background:linear-gradient(90deg,rgba(251,191,36,.4),rgba(251,191,36,.15),rgba(251,191,36,.4));
+    box-shadow:inset 0 0 15px rgba(251,191,36,.6), 0 0 20px rgba(251,191,36,.4);
+    animation:levelPulse 2s ease-in-out infinite;}
+  @keyframes levelPulse{0%,100%{box-shadow:inset 0 0 15px rgba(251,191,36,.6),0 0 20px rgba(251,191,36,.4)}50%{box-shadow:inset 0 0 20px rgba(251,191,36,.9),0 0 30px rgba(251,191,36,.7)}}
+  
+  .tower-level-icon{font-size:clamp(11px,2.6vw,15px);filter:grayscale(.5);transition:filter .5s;}
+  .tower-level.active .tower-level-icon{filter:none;text-shadow:0 0 8px #fbbf24;}
+  .tower-level-label{font-size:clamp(8px,2vw,10px);color:rgba(255,255,255,.7);font-weight:bold;
+    text-shadow:0 1px 2px rgba(0,0,0,.7);flex:1;text-align:center;line-height:1.2;transition:color .5s;}
+  .tower-level.active .tower-level-label{color:#fff;text-shadow:0 0 6px #fbbf24,0 1px 2px rgba(0,0,0,.9);}
+  
+  .carbon-dot{position:absolute;left:-20px;width:34px;height:34px;border-radius:50%;
+    background:radial-gradient(circle,#fbbf24,#b45309);border:2px solid #fff;
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;
+    color:#1e293b;box-shadow:0 0 20px rgba(251,191,36,.9),0 0 40px rgba(251,191,36,.5);
+    transition:bottom 1.2s cubic-bezier(.34,1.56,.64,1);pointer-events:none;z-index:10;
+    animation:carbonPulse 1.5s ease-in-out infinite;}
+  @keyframes carbonPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+  
+  .vapor{position:absolute;width:7px;height:7px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.9),rgba(255,255,255,0));
+    pointer-events:none;z-index:5;animation:vaporRise 2.2s ease-out forwards;}
+  @keyframes vaporRise{
+    0%{bottom:8%;opacity:0;transform:translateX(0) scale(.4)}
+    10%{opacity:.85}
+    90%{opacity:.3}
+    100%{bottom:92%;opacity:0;transform:translateX(15px) scale(1.6)}
+  }
+  
+  .fraction-col{flex:1;display:flex;flex-direction:column;gap:5px;overflow-y:auto;padding:4px;min-width:0;}
+  .fraction-col::-webkit-scrollbar{width:4px;}
+  .fraction-col::-webkit-scrollbar-thumb{background:rgba(251,191,36,.4);border-radius:2px;}
+  
+  .frac-card{background:linear-gradient(135deg,rgba(30,41,59,.95),rgba(15,23,42,.95));
+    border:1px solid rgba(100,116,139,.35);border-radius:12px;padding:7px 9px;
+    font-size:clamp(10px,2.5vw,12px);opacity:.3;transition:all .5s;position:relative;
+    flex-shrink:0;display:flex;align-items:flex-start;gap:7px;overflow:hidden;}
+  .frac-card::before{content:'';position:absolute;right:0;top:0;bottom:0;width:3px;
+    background:var(--gold);opacity:0;transition:opacity .5s;}
+  .frac-card.show{opacity:1;border-color:rgba(251,191,36,.55);
+    box-shadow:0 0 15px rgba(251,191,36,.2),inset 0 0 20px rgba(251,191,36,.05);}
+  .frac-card.show::before{opacity:1;}
+  
+  .frac-icon{font-size:clamp(18px,4.5vw,24px);flex-shrink:0;filter:grayscale(1);transition:filter .5s;
+    display:flex;align-items:center;justify-content:center;width:28px;height:28px;}
+  .frac-card.show .frac-icon{filter:none;}
+  .frac-info{flex:1;min-width:0;}
+  .frac-info .name{color:var(--gold);font-weight:bold;font-size:clamp(11px,2.9vw,13px);margin-bottom:2px;line-height:1.3;}
+  .frac-info .uses{color:#cbd5e1;font-size:.78em;line-height:1.35;margin-bottom:2px;}
+  .frac-info .meta{color:#60a5fa;font-size:.72em;font-weight:bold;
+    background:rgba(59,130,246,.12);padding:1px 6px;border-radius:6px;display:inline-block;}
+
+  .tower-controls{padding:12px;padding-bottom:max(12px,env(safe-area-inset-bottom));
+    background:rgba(0,0,0,.7);border-top:1px solid rgba(139,92,246,.3);
+    display:flex;gap:8px;flex-shrink:0;backdrop-filter:blur(6px);}
+  .tower-controls .btn{flex:1;}
+
+  /* ===== Polymer ===== */
+  #scr-poly{background:radial-gradient(circle at center,#312e81,#0f172a);}
+  .poly-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:16px;gap:14px;overflow:hidden;min-height:0;}
+  .poly-title{font-size:clamp(15px,4vw,18px);color:var(--gold);text-align:center;font-weight:bold;}
+  .poly-desc{font-size:clamp(11px,2.9vw,13px);color:#cbd5e1;text-align:center;line-height:1.7;max-width:420px;}
+  .reaction-box{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;
+    background:rgba(15,23,42,.7);border:1px solid rgba(139,92,246,.4);border-radius:16px;
+    padding:12px 16px;font-size:clamp(11px,2.8vw,13px);}
+  .react-item{display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .react-icon{font-size:26px;}
+  .react-label{color:#94a3b8;font-size:9px;}
+  .react-plus{color:var(--gold);font-size:20px;font-weight:bold;}
+  .monomers-container{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;
+    padding:14px;background:rgba(0,0,0,.3);border-radius:16px;min-height:100px;align-items:center;max-width:100%;}
+  .monomer-svg{transition:transform .6s,opacity .4s;}
+  .monomer-svg.vibrate{animation:vibrate .3s infinite;}
+  @keyframes vibrate{0%,100%{transform:translate(0,0);}25%{transform:translate(-1px,1px);}75%{transform:translate(1px,-1px);}}
+  .poly-controls{padding:12px;padding-bottom:max(12px,env(safe-area-inset-bottom));
+    background:rgba(0,0,0,.6);border-top:1px solid rgba(139,92,246,.3);flex-shrink:0;}
+  .poly-controls .btn{width:100%;}
+
+  /* ===== End ===== */
+  #scr-end{justify-content:center;align-items:center;padding:20px;text-align:center;
+    background:radial-gradient(circle,#312e81,#000);}
+  .trophy{font-size:90px;margin-bottom:20px;animation:float 3s ease-in-out infinite;}
+  @keyframes float{50%{transform:translateY(-12px);}}
+  .end-stats{background:rgba(30,41,59,.8);border:1px solid rgba(139,92,246,.4);
+    border-radius:16px;padding:14px 20px;margin:16px 0;width:100%;max-width:340px;}
+  .end-stat{display:flex;justify-content:space-between;padding:6px 0;
+    border-bottom:1px solid rgba(255,255,255,.08);font-size:clamp(12px,3vw,14px);}
+  .end-stat:last-child{border:none;}
+  .end-stat .v{color:var(--gold);font-weight:bold;}
+
+  .toast{position:fixed;top:20%;left:50%;transform:translateX(-50%) translateY(-20px);
+    background:rgba(139,92,246,.95);color:#fff;padding:12px 22px;border-radius:14px;
+    font-weight:bold;font-size:clamp(12px,3.2vw,15px);opacity:0;pointer-events:none;
+    transition:all .3s;z-index:200;max-width:88vw;text-align:center;line-height:1.5;
+    box-shadow:0 10px 30px rgba(0,0,0,.6);}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast.error{background:rgba(239,68,68,.95);}
+  .toast.success{background:rgba(16,185,129,.95);}
+
+  @media (max-height:520px){
+    .topbar{padding:6px 12px;padding-top:max(6px,env(safe-area-inset-top));}
+    .cycle-info{min-height:80px;padding:8px 12px;}
+    .tower-controls{padding:8px;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- INTRO -->
+  <div class="screen active" id="scr-intro">
+    <div class="intro-atom">
+      <div class="orbit o1"><div class="electron"></div></div>
+      <div class="orbit o2"><div class="electron"></div></div>
+      <div class="orbit o3"><div class="electron"></div></div>
+      <div class="intro-nucleus">C</div>
+    </div>
+    <div class="intro-title">سفر هیجان‌انگیز کربن</div>
+    <div class="intro-sub">
+      تو یک اتم کربن هستی!<br>
+      از هوا تا گیاه، از خاک تا نفت،<br>
+      از برج تقطیر تا پلاستیک —<br>
+      آماده‌ای برای این سفر باورنکردنی؟
+    </div>
+    <button class="btn gold" id="btn-start">🚀 شروع سفر</button>
+  </div>
+
+  <!-- CYCLE -->
+  <div class="screen" id="scr-cycle">
+    <div class="topbar">
+      <span class="progress-badge">🌍 مرحله ۱: چرخه کربن</span>
+      <span id="cycle-progress">۰/۵</span>
+    </div>
+    <div class="scene-wrapper" id="sceneWrapper">
+      <svg class="scene-svg" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#a5f3fc"/></linearGradient>
+          <linearGradient id="groundG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#16a34a"/><stop offset="100%" stop-color="#15803d"/></linearGradient>
+          <linearGradient id="soilG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#78350f"/><stop offset="100%" stop-color="#451a03"/></linearGradient>
+        </defs>
+        <rect x="0" y="0" width="400" height="280" fill="url(#skyG)"/>
+        <circle cx="330" cy="60" r="28" fill="#fbbf24" opacity=".9"/>
+        <circle cx="330" cy="60" r="36" fill="#fbbf24" opacity=".25"/>
+        <g opacity=".85" fill="#fff">
+          <ellipse cx="90" cy="70" rx="35" ry="16"/><ellipse cx="115" cy="62" rx="28" ry="13"/><ellipse cx="65" cy="65" rx="22" ry="11"/>
+          <ellipse cx="260" cy="120" rx="30" ry="14"/><ellipse cx="285" cy="112" rx="24" ry="11"/>
+        </g>
+        <polygon points="0,280 70,180 140,280" fill="#64748b"/>
+        <polygon points="100,280 190,150 280,280" fill="#475569"/>
+        <polygon points="250,280 340,190 400,280" fill="#64748b"/>
+        <rect x="0" y="280" width="400" height="90" fill="url(#groundG)"/>
+        <g fill="#166534">
+          <rect x="55" y="290" width="6" height="30"/><polygon points="40,290 58,260 76,290"/><polygon points="42,275 58,250 74,275"/>
+          <rect x="300" y="290" width="6" height="30"/><polygon points="285,290 303,260 321,290"/><polygon points="287,275 303,250 319,275"/>
+        </g>
+        <ellipse cx="200" cy="355" rx="90" ry="22" fill="#0284c7"/>
+        <ellipse cx="200" cy="352" rx="85" ry="18" fill="#0ea5e9"/>
+        <rect x="0" y="370" width="400" height="230" fill="url(#soilG)"/>
+        <path d="M0,480 Q100,470 200,490 T400,480 L400,600 L0,600 Z" fill="#1c1917" opacity=".8"/>
+        <g stroke="#a16207" stroke-width="2" fill="none" opacity=".6">
+          <circle cx="80" cy="520" r="8"/><circle cx="95" cy="520" r="8"/>
+          <line x1="85" y1="527" x2="88" y2="555"/><line x1="90" y1="527" x2="93" y2="555"/>
+        </g>
+        <g fill="#0f172a" opacity=".8"><ellipse cx="300" cy="540" rx="30" ry="10"/><ellipse cx="330" cy="545" rx="20" ry="8"/></g>
+        <g transform="translate(140,320)">
+          <ellipse cx="0" cy="0" rx="12" ry="7" fill="#f97316"/>
+          <circle cx="-10" cy="-3" r="4" fill="#f97316"/>
+          <rect x="-3" y="6" width="2" height="8" fill="#7c2d12"/><rect x="3" y="6" width="2" height="8" fill="#7c2d12"/>
+        </g>
+      </svg>
+
+      <div class="hotspot next" data-step="0" style="top:15%;left:55%;">☁️ هواکره</div>
+      <div class="hotspot locked" data-step="1" style="top:42%;left:25%;">🌳 گیاه</div>
+      <div class="hotspot locked" data-step="2" style="top:52%;left:65%;">🐄 جانور</div>
+      <div class="hotspot locked" data-step="3" style="top:58%;left:50%;">💧 آب</div>
+      <div class="hotspot locked" data-step="4" style="top:85%;left:50%;">⛽ سوخت فسیلی</div>
+
+      <div class="carbon-atom" id="carbonAtom" style="top:15%;left:55%;">C</div>
+    </div>
+    <div class="cycle-info">
+      <div class="cycle-info-title" id="cycleTitle">روی «☁️ هواکره» کلیک کن</div>
+      <div class="cycle-info-text" id="cycleText">در هوا به شکل گاز کربن‌دی‌اکسید (CO₂) هستیم...</div>
+    </div>
+  </div>
+
+  <!-- HYDROCARBON -->
+  <div class="screen" id="scr-hydro">
+    <div class="topbar">
+      <span class="progress-badge">💡 آشنایی با هیدروکربن</span><span>🛢️</span>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:16px;">
+      <div class="hydro-card">
+        <div class="hydro-title">💡 هیدروکربن چیست؟</div>
+        <div class="hydro-formula"><span class="c">کربن</span> + <span class="h">هیدروژن</span> = <span style="color:#fbbf24;">هیدروکربن</span></div>
+        <div class="hydro-text">
+          به ترکیبی که <b>فقط</b> از دو عنصر <b style="color:#94a3b8;">کربن (C)</b> و <b style="color:#fbbf24;">هیدروژن (H)</b> ساخته شده باشد، <b style="color:#fbbf24;">هیدروکربن</b> می‌گویند.<br><br>
+          نفت خام و گاز طبیعی، مخلوطی از میلیون‌ها هیدروکربن مختلف هستند که فقط تعداد کربن‌شان با هم فرق دارد!
+        </div>
+        <div class="hydro-examples">
+          <div class="hydro-ex"><b>CH₄</b>متان</div>
+          <div class="hydro-ex"><b>C₂H₆</b>اتان</div>
+          <div class="hydro-ex"><b>C₂H₄</b>اتن</div>
+        </div>
+        <button class="btn gold" id="btn-hydro-next" style="width:100%;">ادامه به چالش 🔥</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOWER -->
+  <div class="screen" id="scr-tower">
+    <div class="topbar">
+      <span class="progress-badge">🏭 مرحله ۲: برج تقطیر</span>
+      <span id="towerCount">۰/۶</span>
+    </div>
+    <div class="tower-layout">
+      <div class="tower-col" id="towerCol">
+        <div class="fire-base">🔥🔥🔥</div>
+        <div class="crude-inlet">⛽ نفت خام وارد شد</div>
+      </div>
+      <div class="fraction-col" id="fractionCol"></div>
+    </div>
+    <div class="tower-controls">
+      <button class="btn red" id="btn-heat" disabled style="display:none;">🔥 حرارت بده</button>
+      <button class="btn green" id="btn-next-level" disabled style="display:none;">⬆️ ادامه به پلیمریزاسیون</button>
+      <button class="btn gold" id="btn-tower-start">🔥 شروع حرارت دادن</button>
+    </div>
+  </div>
+
+  <!-- POLYMER -->
+  <div class="screen" id="scr-poly">
+    <div class="topbar">
+      <span class="progress-badge">🧪 مرحله ۳: بسپارش (پلیمریزاسیون)</span><span>♻️</span>
+    </div>
+    <div class="poly-area">
+      <div class="poly-title" id="poly-title">حالا ما اتن (اتیلن) هستیم: C₂H₄</div>
+      <div class="poly-desc" id="poly-desc">اتن یک پیوند دوگانه (C=C) دارد. با حرارت، فشار و کاتالیزگر اسید سولفوریک (H₂SO₄) پیوند دوگانه می‌شکند و مولکول‌ها به هم می‌چسبند.</div>
+      <div class="reaction-box">
+        <div class="react-item"><div class="react-icon">🔥</div><div class="react-label">حرارت</div></div>
+        <div class="react-plus">+</div>
+        <div class="react-item"><div class="react-icon">⬇️</div><div class="react-label">فشار</div></div>
+        <div class="react-plus">+</div>
+        <div class="react-item"><div class="react-icon">💧</div><div class="react-label">H₂SO₄</div></div>
+      </div>
+      <div class="monomers-container" id="monomersContainer"></div>
+    </div>
+    <div class="poly-controls">
+      <button class="btn red" id="btn-react">🔥 شروع واکنش پلیمریزاسیون</button>
+      <button class="btn gold" id="btn-poly-finish" style="display:none;">پایان سفر 🎉</button>
+    </div>
+  </div>
+
+  <!-- END -->
+  <div class="screen" id="scr-end">
+    <div class="trophy">🏆</div>
+    <div class="intro-title">سفر کامل شد!</div>
+    <div class="intro-sub">تو از هوا به گیاه، از خاک به نفت، از برج تقطیر به اتن و در نهایت به پلی‌اتیلن (پلاستیک) تبدیل شدی!</div>
+    <div class="end-stats">
+      <div class="end-stat"><span>امتیاز کل</span><span class="v" id="endScore">0</span></div>
+      <div class="end-stat"><span>پاسخ صحیح چالش‌ها</span><span class="v" id="endCorrect">0</span></div>
+      <div class="end-stat"><span>سطح تسلط</span><span class="v" id="endRank">—</span></div>
+    </div>
+    <button class="btn gold" onclick="location.reload()">🔄 بازی مجدد</button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-question" id="modalQuestion"></div>
+    <div class="modal-options" id="modalOptions"></div>
+    <div class="modal-explanation" id="modalExplanation"></div>
+    <button class="btn green" id="modalContinue" style="width:100%;display:none;">ادامه ▶</button>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+
+const state = { cycleStep: 0, towerStage: 0, correctAnswers: 0, score: 0, polyLinked: 0 };
+
+const cycleData = [
+  { title:'☁️ هواکره (اتمسفر)', text:'در هوا به شکل گاز کربن‌دی‌اکسید (CO₂) هستیم. تنفس جانداران و سوزاندن سوخت، ما را به هوا می‌فرستد.', pos:{top:'15%', left:'55%'} },
+  { title:'🌳 گیاهان (فتوسنتز)', text:'گیاهان ما را از هوا جذب می‌کنند و با نور خورشید ما را به کربوهیدرات (قند) تبدیل می‌کنند.', pos:{top:'42%', left:'25%'} },
+  { title:'🐄 جانداران', text:'ما وارد بدن جانوران می‌شویم. با خوردن گیاه یا جانور دیگر، کربن به بدن‌شان منتقل می‌شود.', pos:{top:'52%', left:'65%'} },
+  { title:'💧 آب‌کره (اقیانوس‌ها)', text:'بخشی از ما در آب حل می‌شویم و به شکل کربنات در آب دریا ذخیره می‌شویم.', pos:{top:'58%', left:'50%'} },
+  { title:'⛽ سوخت فسیلی', text:'میلیون‌ها سال پیش، ما همراه با گیاهان و جانوران مُرده در زیر خاک دفن شدیم. تحت فشار و حرارت زیاد، به نفت خام و گاز طبیعی تبدیل شدیم!', pos:{top:'85%', left:'50%'} }
+];
+
+// ترتیب از بالا (گاز) به پایین (قیر) اصلاح شد
+const fractions = [
+  { name:'گاز شهری (LPG)', c:'۱ تا ۴ کربن', uses:'اجاق گاز، بخاری', icon:'🔥', level:5 }, // Top
+  { name:'سوخت هواپیما', c:'۱۲ تا ۱۴ کربن', uses:'سوخت جت', icon:'✈️', level:4 },
+  { name:'بنزین (خودرو)', c:'۵ تا ۱۱ کربن', uses:'سوخت ماشین', icon:'🚗', level:3 },
+  { name:'سوخت کشتی و نیروگاه', c:'۱۴ تا ۱۸ کربن', uses:'سوخت سنگین', icon:'🚢', level:2 },
+  { name:'روان‌کننده‌ها', c:'۱۸ تا ۲۰ کربن', uses:'روغن موتور، گریس', icon:'⚙️', level:1 },
+  { name:'قیر (آسفالت)', c:'بیش از ۲۰ کربن', uses:'آسفالت خیابان‌ها', icon:'🛣️', level:0 } // Bottom
+];
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function toast(msg, type){
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type||'');
+  clearTimeout(t._tm);
+  t._tm = setTimeout(()=> t.classList.remove('show'), 2000);
+}
+
+function showQuiz(config, onComplete){
+  $('modalTitle').textContent = config.title;
+  $('modalQuestion').innerHTML = config.question;
+  $('modalExplanation').textContent = config.explanation;
+  $('modalExplanation').classList.remove('show');
+  $('modalContinue').style.display = 'none';
+
+  const optDiv = $('modalOptions');
+  optDiv.innerHTML = '';
+  config.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt;
+    btn.onclick = () => {
+      if(btn.disabled) return;
+      optDiv.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+      if(i === config.correct){
+        btn.classList.add('correct');
+        state.correctAnswers++;
+        state.score += 10;
+        toast('✅ درست! +۱۰', 'success');
+      } else {
+        btn.classList.add('wrong');
+        optDiv.children[config.correct].classList.add('correct');
+        toast('❌ اشتباه', 'error');
+      }
+      $('modalExplanation').classList.add('show');
+      $('modalContinue').style.display = '';
+      $('modalContinue').onclick = () => { closeModal(); if(onComplete) onComplete(); };
+    };
+    optDiv.appendChild(btn);
+  });
+  $('modal').classList.add('open');
+}
+
+function closeModal(){ $('modal').classList.remove('open'); }
+
+function toFarsi(n){ return String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]); }
+
+// ===== CYCLE =====
+function initCycle(){
+  document.querySelectorAll('.hotspot').forEach(h => {
+    const clone = h.cloneNode(true);
+    h.parentNode.replaceChild(clone, h);
+  });
+  document.querySelectorAll('.hotspot').forEach(h => {
+    h.addEventListener('click', () => {
+      const step = parseInt(h.dataset.step);
+      if(step === state.cycleStep) handleCycleClick(step);
+    });
+  });
+}
+
+function handleCycleClick(step){
+  const data = cycleData[step];
+  const hotspot = document.querySelector(`.hotspot[data-step="${step}"]`);
+  const atom = $('carbonAtom');
+  atom.style.top = data.pos.top;
+  atom.style.left = data.pos.left;
+  hotspot.classList.remove('next');
+  hotspot.classList.add('visited');
+  $('cycleTitle').textContent = data.title;
+  $('cycleText').textContent = data.text;
+  state.cycleStep++;
+  state.score += 5;
+  $('cycle-progress').textContent = toFarsi(state.cycleStep) + '/۵';
+
+  if(state.cycleStep >= cycleData.length){
+    setTimeout(() => {
+      $('cycleTitle').textContent = '⏳ میلیون‌ها سال گذشت...';
+      $('cycleText').textContent = 'ما در زیر خاک ماندیم. حالا وقت استخراج نفت خام است!';
+      setTimeout(() => showScreen('scr-hydro'), 2200);
+    }, 800);
+  } else {
+    const next = document.querySelector(`.hotspot[data-step="${state.cycleStep}"]`);
+    if(next){ next.classList.remove('locked'); next.classList.add('next'); }
+  }
+}
+
+// ===== TOWER =====
+function initTower(){
+  const towerCol = $('towerCol');
+  // Keep fire base and inlet, clear levels
+  const fire = towerCol.querySelector('.fire-base');
+  const inlet = towerCol.querySelector('.crude-inlet');
+  towerCol.innerHTML = '';
+  towerCol.appendChild(fire);
+  towerCol.appendChild(inlet);
+
+  // Build tower levels (Top to Bottom)
+  // fractions[0] is Gas (Top), fractions[5] is Asphalt (Bottom)
+  fractions.forEach((frac, i) => {
+    const lvl = document.createElement('div');
+    lvl.className = 'tower-level';
+    lvl.id = 'level-' + i;
+    lvl.innerHTML = `
+      <span class="tower-level-icon">${frac.icon}</span>
+      <span class="tower-level-label">${frac.name}</span>
+    `;
+    towerCol.appendChild(lvl);
+  });
+
+  const dot = document.createElement('div');
+  dot.className = 'carbon-dot';
+  dot.id = 'carbonDot';
+  dot.textContent = 'C';
+  dot.style.bottom = '2%'; // Starts at bottom (crude oil)
+  towerCol.appendChild(dot);
+
+  const col = $('fractionCol');
+  col.innerHTML = '';
+  fractions.forEach((frac, i) => {
+    const card = document.createElement('div');
+    card.className = 'frac-card';
+    card.id = 'card-' + i;
+    card.innerHTML = `
+      <div class="frac-icon">${frac.icon}</div>
+      <div class="frac-info">
+        <div class="name">${frac.name}</div>
+        <div class="uses">${frac.uses}</div>
+        <div class="meta">${frac.c}</div>
+      </div>
+    `;
+    col.appendChild(card);
+  });
+
+  state.towerStage = 0;
+  $('towerCount').textContent = '۰/۶';
+  $('btn-tower-start').style.display = '';
+  $('btn-tower-start').disabled = false;
+  $('btn-heat').style.display = 'none';
+  $('btn-next-level').style.display = 'none';
+}
+
+function startTowerQuiz(){
+  $('btn-tower-start').disabled = true;
+  showQuiz({
+    title:'❓ چالش اول: نقطه جوش',
+    question:'اگر مخلوط نفت خام را در برج تقطیر حرارت دهیم، چه اتفاقی می‌افتد؟',
+    options:['همه با هم یکجا به گاز تبدیل می‌شوند', 'هر ترکیب در دمای مخصوص خودش تبخیر می‌شود', 'هیچ‌کدام تبخیر نمی‌شوند'],
+    correct: 1,
+    explanation:'✅ درست! نفت خام مخلوطی از هیدروکربن‌های مختلف است. هر هیدروکربن به تعداد کربنش، نقطه جوش متفاوتی دارد. در برج تقطیر، ترکیب‌ها را بر اساس نقطه جوش از هم جدا می‌کنند.'
+  }, () => {
+    setTimeout(() => {
+      showQuiz({
+        title:'❓ چالش دوم: تعداد کربن',
+        question:'به نظرت کدام هیدروکربن زودتر به گاز تبدیل می‌شود و به بالای برج می‌رود؟',
+        options:['متان (CH₄) با ۱ کربن', 'اکتان (C₈H₁₈) با ۸ کربن', 'قیر با بیش از ۲۰ کربن'],
+        correct: 0,
+        explanation:'✅ آفرین! قاعده مهم: هرچه تعداد کربن کمتر باشد، نقطه جوش کمتر است و زودتر تبخیر می‌شود. پس متان اول از همه به گاز تبدیل می‌شود و به بالای برج می‌رود.'
+      }, () => {
+        $('btn-tower-start').style.display = 'none';
+        $('btn-heat').style.display = '';
+        $('btn-heat').disabled = false;
+        toast('🔥 حالا دکمه حرارت را بزن تا گازها بالا بروند!', 'success');
+      });
+    }, 300);
+  });
+}
+
+function heatTower(){
+  if(state.towerStage >= fractions.length) return;
+  
+  const idx = state.towerStage;
+  const frac = fractions[idx]; // idx 0 is Gas (Top)
+  const levelEl = $('level-' + idx); // matches the DOM order (0 is top)
+  const cardEl = $('card-' + idx);
+  const dot = $('carbonDot');
+  
+  // Move dot UP. 
+  // idx 0 (Gas) -> bottom: 85%
+  // idx 1 (Airplane) -> bottom: 70%
+  // ...
+  // idx 5 (Asphalt) -> bottom: 5%
+  const pct = 85 - (idx * 16);
+  
+  levelEl.classList.add('active');
+  cardEl.classList.add('show');
+  dot.style.bottom = pct + '%';
+
+  // Create vapor particles
+  for(let i=0; i<3; i++){
+    const vap = document.createElement('div');
+    vap.className = 'vapor';
+    vap.style.left = (30 + Math.random()*40) + '%';
+    $('towerCol').appendChild(vap);
+    setTimeout(() => vap.remove(), 2200);
+  }
+
+  state.towerStage++;
+  state.score += 8;
+  $('towerCount').textContent = toFarsi(state.towerStage) + '/۶';
+
+  if(state.towerStage >= fractions.length){
+    $('btn-heat').style.display = 'none';
+    $('btn-next-level').style.display = '';
+    $('btn-next-level').disabled = false;
+    toast('🎉 همه برش‌ها جدا شدند!', 'success');
+  }
+}
+
+function toPolymer(){
+  showScreen('scr-poly');
+  initPolymer();
+}
+
+// ===== POLYMER =====
+function createMonomerSVG(id){
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('width', '68'); svg.setAttribute('height', '58'); svg.setAttribute('viewBox', '0 0 68 58');
+  svg.setAttribute('class', 'monomer-svg'); svg.id = 'monomer-' + id;
+
+  const hPositions = [{x:8, y:20}, {x:8, y:38}, {x:60, y:20}, {x:60, y:38}];
+
+  const l1 = document.createElementNS(NS, 'line');
+  l1.setAttribute('x1','24'); l1.setAttribute('y1','24'); l1.setAttribute('x2','44'); l1.setAttribute('y2','24');
+  l1.setAttribute('stroke','#fbbf24'); l1.setAttribute('stroke-width','2.5'); svg.appendChild(l1);
+
+  const l2 = document.createElementNS(NS, 'line');
+  l2.setAttribute('x1','24'); l2.setAttribute('y1','34'); l2.setAttribute('x2','44'); l2.setAttribute('y2','34');
+  l2.setAttribute('stroke','#fbbf24'); l2.setAttribute('stroke-width','2.5'); l2.id = 'bond2-' + id;
+  l2.style.transition = 'opacity .4s, transform .4s'; svg.appendChild(l2);
+
+  hPositions.forEach((h, i) => {
+    const line = document.createElementNS(NS, 'line');
+    const cX = i < 2 ? 24 : 44;
+    line.setAttribute('x1', cX); line.setAttribute('y1', 29); line.setAttribute('x2', h.x); line.setAttribute('y2', h.y);
+    line.setAttribute('stroke', '#94a3b8'); line.setAttribute('stroke-width', '1.5'); svg.appendChild(line);
+  });
+
+  hPositions.forEach(h => {
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', h.x); c.setAttribute('cy', h.y); c.setAttribute('r', '5'); c.setAttribute('fill', '#fbbf24'); svg.appendChild(c);
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', h.x); t.setAttribute('y', h.y + 3); t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('font-size', '8'); t.setAttribute('fill', '#1e293b'); t.setAttribute('font-weight', 'bold');
+    t.textContent = 'H'; svg.appendChild(t);
+  });
+
+  [24, 44].forEach(x => {
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', x); c.setAttribute('cy', 29); c.setAttribute('r', '9'); c.setAttribute('fill', '#475569');
+    c.setAttribute('stroke', '#fbbf24'); c.setAttribute('stroke-width', '1.5'); svg.appendChild(c);
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', x); t.setAttribute('y', 32); t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('font-size', '11'); t.setAttribute('fill', '#fff'); t.setAttribute('font-weight', 'bold');
+    t.textContent = 'C'; svg.appendChild(t);
+  });
+
+  return svg;
+}
+
+function initPolymer(){
+  const container = $('monomersContainer');
+  container.innerHTML = '';
+  container.style.flexWrap = 'wrap'; container.style.overflowX = 'visible'; container.style.justifyContent = 'center';
+  state.polyLinked = 0;
+  for(let i = 0; i < 6; i++){ container.appendChild(createMonomerSVG(i)); }
+  $('btn-react').style.display = ''; $('btn-react').disabled = false; $('btn-poly-finish').style.display = 'none';
+  $('poly-title').textContent = 'حالا ما اتن (اتیلن) هستیم: C₂H₄';
+  $('poly-desc').textContent = 'اتن یک پیوند دوگانه (C=C) دارد. با حرارت، فشار و کاتالیزگر اسید سولفوریک (H₂SO₄) پیوند دوگانه می‌شکند و مولکول‌ها به هم می‌چسبند.';
+}
+
+function startReaction(){
+  $('btn-react').disabled = true;
+  showQuiz({
+    title:'❓ چالش سوم: پلیمریزاسیون',
+    question:'با حرارت، فشار و کاتالیزگر H₂SO₄، پیوند دوگانه (C=C) در اتن چه می‌شود؟',
+    options:['قوی‌تر می‌شود و مولکول‌ها از هم دور می‌شوند', 'می‌شکند و پیوند یگانه (C-C) ایجاد می‌شود', 'تبدیل به پیوند سه‌گانه می‌شود'],
+    correct: 1,
+    explanation:'✅ درست! پیوند دوگانه اتن ناپایدار است. با حرارت، فشار و کاتالیزگر، یکی از پیوندها می‌شکند و به پیوند یگانه (C-C) تبدیل می‌شود. حالا هر مولکول می‌تواند به مولکول بعدی وصل شود و زنجیره بلند پلی‌اتیلن بسازد.'
+  }, () => animatePolymerization());
+}
+
+function animatePolymerization(){
+  const monomers = document.querySelectorAll('.monomer-svg');
+  monomers.forEach(m => m.classList.add('vibrate'));
+
+  setTimeout(() => {
+    monomers.forEach((m, i) => {
+      const bond2 = document.getElementById('bond2-' + i);
+      if(bond2){
+        bond2.style.opacity = '0'; bond2.style.transform = 'translateY(-10px)';
+        setTimeout(() => bond2.remove(), 400);
+      }
+      m.classList.remove('vibrate');
+    });
+    setTimeout(() => linkChain(monomers), 500);
+  }, 1200);
+}
+
+function linkChain(monomers){
+  const container = $('monomersContainer');
+  monomers.forEach((m, i) => {
+    if(i < monomers.length - 1){
+      const bond = document.createElement('div');
+      bond.style.width = '8px'; bond.style.height = '3px'; bond.style.background = '#fbbf24';
+      bond.style.borderRadius = '2px'; bond.style.boxShadow = '0 0 8px #fbbf24';
+      bond.style.opacity = '0'; bond.style.transition = 'opacity .4s';
+      m.after(bond);
+      setTimeout(() => bond.style.opacity = '1', i * 100);
+    }
+  });
+
+  setTimeout(() => {
+    container.style.flexWrap = 'nowrap'; container.style.overflowX = 'auto'; container.style.justifyContent = 'flex-start';
+    toast('🎉 پلی‌اتیلن ساخته شد!', 'success');
+    state.score += 50;
+    $('btn-poly-finish').style.display = '';
+    $('poly-title').textContent = '✨ پلی‌اتیلن (پلاستیک) ساخته شد!';
+    $('poly-desc').textContent = 'زنجیره‌ای از هزاران مولکول اتن به هم متصل شدند و پلی‌اتیلن ساختند — همان پلاستیکی که هر روز استفاده می‌کنیم!';
+  }, 800);
+}
+
+// ===== END =====
+function showEnd(){
+  $('endScore').textContent = toFarsi(state.score);
+  $('endCorrect').textContent = toFarsi(state.correctAnswers) + ' از ۳';
+  const rank = state.correctAnswers >= 3 ? 'استاد کربن 🏆' : state.correctAnswers >= 2 ? 'کربن‌شناس 🥈' : state.correctAnswers >= 1 ? 'دانش‌آموز کوشا 🥉' : 'تازه‌کار';
+  $('endRank').textContent = rank;
+  showScreen('scr-end');
+}
+
+// ===== INIT =====
+$('btn-start').onclick = () => {
+  state.cycleStep = 0;
+  state.score = 0;
+  state.correctAnswers = 0;
+  $('cycle-progress').textContent = '۰/۵';
+  $('carbonAtom').style.top = '15%';
+  $('carbonAtom').style.left = '55%';
+  document.querySelectorAll('.hotspot').forEach(h => {
+    h.classList.remove('visited','next');
+    h.classList.add('locked');
+  });
+  const first = document.querySelector('.hotspot[data-step="0"]');
+  first.classList.remove('locked');
+  first.classList.add('next');
+  showScreen('scr-cycle');
+  initCycle();
+};
+
+$('btn-hydro-next').onclick = () => {
+  showScreen('scr-tower');
+  initTower();
+};
+
+$('btn-tower-start').onclick = startTowerQuiz;
+$('btn-heat').onclick = heatTower;
+$('btn-next-level').onclick = toPolymer;
+$('btn-react').onclick = startReaction;
+$('btn-poly-finish').onclick = showEnd;
+
+document.addEventListener('gesturestart', e => e.preventDefault());
+
+})();
+</script>
+</body>
+</html>
